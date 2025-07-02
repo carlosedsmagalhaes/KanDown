@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Quadro {
+  id           String   @id @default(cuid())
+  nome         String
+  data_criacao DateTime @default(now())
+  colunas      Coluna[]
+}
+
+model Coluna {
+  id        String   @id @default(cuid())
+  nome      String
+  posicao   Int
+  quadro_id String
+  quadro    Quadro   @relation(fields: [quadro_id], references: [id])
+  tarefas   Tarefa[]
+}
+
+model Tarefa {
+  id        String @id @default(cuid())
+  nome      String
+  descricao String
+  tamanho   Int
+  estagio   String
+  coluna_id String
+  coluna    Coluna @relation(fields: [coluna_id], references: [id])
+}
