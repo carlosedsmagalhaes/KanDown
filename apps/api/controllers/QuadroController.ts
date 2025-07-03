@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { ParamsDictionary } from "express-serve-static-core";
-import { ParsedQs } from "qs";
 import Quadro from "../interfaces/Quadro";
 
 const prisma = new PrismaClient();
@@ -18,7 +16,7 @@ class QuadroController {
       res.status(201).json(quadro);
     } catch (error) {
       console.error("Error creating quadro:", error);
-      throw new Error("Failed to create quadro");
+      res.status(500).json({ message: "Failed to create quadro" });
     }
   }
 
