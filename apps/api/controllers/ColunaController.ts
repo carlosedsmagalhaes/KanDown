@@ -47,17 +47,56 @@ class ColunaController {
   putColunaPosicao = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { posicao } = req.body as { posicao: number };
+    const { novaPosicao } = req.body as { novaPosicao: number };
 
     try {
-      const coluna = await prisma.coluna.update({
-        where: { id },
-        data: { posicao },
-      });
-      if (!coluna){
-        res.status(404).json({ message: "Coluna not found" });
+      if (posicao === novaPosicao) {
+        res.status(400).json({ message: "No position change detected" });
         return;
       }
-      res.status(200).json(coluna);
+
+      const transacoes = [];
+
+      if (novaPosicao > posicao) {
+        transacoes.push(
+          prisma.coluna.updateMany({
+            where: {
+              posicao: { gte: posicao, lte: novaPosicao },
+              id: { not: id },
+            },
+            data: { posicao: { decrement: 1 } },
+          })
+        );
+      } else {
+        transacoes.push(
+          prisma.coluna.updateMany({
+            where: {
+              posicao: { lte: posicao, gte: novaPosicao },
+              id: { not: id },
+            },
+            data: { posicao: { increment: 1 } },
+          })
+        );
+      }
+
+      transacoes.push(
+        prisma.coluna.update({
+          where: { id },
+          data: { posicao: novaPosicao },
+        })
+      );
+
+      await prisma.$transaction(transacoes);
+
+      const colunas = await prisma.coluna.findMany({
+        orderBy: { posicao: "asc" },
+      });
+
+      if (!colunas) {
+        res.status(404).json({ message: "Colunas not found" });
+        return;
+      }
+      res.status(200).json(colunas);
     } catch (error) {
       console.error("Error updating coluna:", error);
       res.status(500).json({ message: "Failed to update coluna position" });
@@ -67,9 +106,40 @@ class ColunaController {
   deleteColuna = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     try {
-      const coluna = await prisma.coluna.delete({
+      const colunaReferencia = await prisma.coluna.findUnique({
+        select: { posicao: true },
         where: { id },
       });
+
+      if (!colunaReferencia) {
+        res.status(404).json({ message: "Coluna not found" });
+        return;
+      }
+
+      await prisma.$transaction([
+        prisma.coluna.updateMany({
+          where: {
+            posicao: { gt: colunaReferencia.posicao },
+          },
+          data: {
+            posicao: { decrement: 1 },
+          },
+        }),
+        prisma.coluna.delete({
+          where: { id },
+        }),
+      ]);
+
+      const colunas = await prisma.coluna.findMany({
+        orderBy: { posicao: "asc" },
+      });
+
+      if (!colunas) {
+        res.status(404).json({ message: "Colunas not found" });
+        return;
+      }
+
+      res.status(200).json({ message: "Coluna deleted successfully", colunas });
     } catch (error) {
       console.error("Error deleting coluna:", error);
       res.status(500).json({ message: "Failed to delete coluna" });

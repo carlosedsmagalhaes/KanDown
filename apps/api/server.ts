@@ -15,5 +15,6 @@ app.listen(PORT, () => {
 
 app.use('/api/quadros', quadroRoutes);
 app.use('/api/colunas', colunaRoutes);
+app.use('/api/tarefas', );
 
 export default app;

@@ -26,9 +26,16 @@ model Coluna {
 model Tarefa {
   id        String @id @default(cuid())
   nome      String
-  descricao String
-  tamanho   Int
-  estagio   String
+  descricao String?
+  posicao   Int
+  tamanho   Int?
+  estagio   String?
   coluna_id String
   coluna    Coluna @relation(fields: [coluna_id], references: [id])
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/DER.svg" 
+  theme    = "dark"
 }
